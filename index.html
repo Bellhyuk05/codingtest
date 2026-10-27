@@ -157,8 +157,9 @@
     <h2>예약하기</h2>
     <p class="desc">강의실 · 요일 · 시간 · 이름을 입력하세요.</p>
     <form id="bookForm">
-      <div class="field"><span class="lab">강의실</span><div class="chips room-chips" data-for="room"></div>
-        <input type="hidden" name="room"></div>
+      <div class="field"><span class="lab">강의실</span>
+        <div class="day-wrap"><div class="chips room-chips"></div>
+          <input name="room" placeholder="직접" autocapitalize="characters" autocomplete="off" required aria-label="강의실 직접 입력"></div></div>
       <div class="field"><span class="lab">요일</span>
         <div class="day-wrap"><div class="chips day-chips" data-for="day"></div>
           <input name="day" placeholder="직접" required aria-label="요일 직접 입력"></div></div>
@@ -175,8 +176,9 @@
     <h2>취소하기</h2>
     <p class="desc">본인 이름으로 한 예약만 취소할 수 있어요.</p>
     <form id="cancelForm">
-      <div class="field"><span class="lab">강의실</span><div class="chips room-chips" data-for="room"></div>
-        <input type="hidden" name="room"></div>
+      <div class="field"><span class="lab">강의실</span>
+        <div class="day-wrap"><div class="chips room-chips"></div>
+          <input name="room" placeholder="직접" autocapitalize="characters" autocomplete="off" required aria-label="강의실 직접 입력"></div></div>
       <div class="field"><span class="lab">요일</span>
         <div class="day-wrap"><div class="chips day-chips" data-for="day"></div>
           <input name="day" placeholder="직접" required aria-label="요일 직접 입력"></div></div>
@@ -233,10 +235,10 @@ def to_number(text):
 rb = RoomBooking()
 
 def do_book(room, day, start, end, name):
-    return rb.book(room, day.strip(), to_number(start), to_number(end), name.strip())
+    return rb.book(room.strip(), day.strip(), to_number(start), to_number(end), name.strip())
 
 def do_cancel(room, day, start, name):
-    return rb.cancel(room, day.strip(), to_number(start), name.strip())
+    return rb.cancel(room.strip(), day.strip(), to_number(start), name.strip())
 
 def do_reason():
     return getattr(rb, "last_reason", "")
@@ -281,13 +283,13 @@ function markChips(box, value) {
 }
 
 for (const form of [$("#bookForm"), $("#cancelForm")]) {
-  const roomBox = form.querySelector(".room-chips"), dayBox = form.querySelector(".day-chips");
-  const roomIn = form.elements.room, dayIn = form.elements.day;
+  const roomBox = form.querySelector(".room-chips"), roomIn = form.elements.room;
+  const dayBox = form.querySelector(".day-chips"), dayIn = form.elements.day;
   makeChips(roomBox, ROOMS, (v) => { roomIn.value = v; markChips(roomBox, v); });
+  roomIn.addEventListener("input", () => markChips(roomBox, roomIn.value.trim()));
   makeChips(dayBox, DAYS, (v) => { dayIn.value = v; markChips(dayBox, v); });
   dayIn.addEventListener("input", () => markChips(dayBox, dayIn.value.trim()));
-  roomIn.value = ROOMS[0]; markChips(roomBox, ROOMS[0]);
-  form.syncChips = () => { markChips(roomBox, roomIn.value); markChips(dayBox, dayIn.value.trim()); };
+  form.syncChips = () => { markChips(roomBox, roomIn.value.trim()); markChips(dayBox, dayIn.value.trim()); };
 }
 
 makeChips($("#viewRoomChips"), ROOMS, (v) => { view.room = v; renderSchedule(); });
@@ -335,7 +337,7 @@ function renderSchedule() {
 }
 
 function showSchedule(room, day) {
-  if (ROOMS.includes(room)) view.room = room;
+  if (ROOMS.includes(room.trim())) view.room = room.trim();
   if (DAYS.includes(day.trim())) view.day = day.trim();
   renderSchedule();
 }
