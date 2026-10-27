@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>강의실 예약</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --text:#1d2129; --muted:#6b7280; --line:#e3e6ea;
+          --accent:#2f6fed; --ok:#15803d; --okbg:#dcfce7; --fail:#b91c1c; --failbg:#fee2e2; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; font-size:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:18px; margin-bottom:16px; }
+  h2 { font-size:17px; margin:0 0 12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:4px; }
+  input, select { font:inherit; font-size:16px; padding:9px 10px; border:1px solid var(--line);
+                  border-radius:8px; background:#fff; color:var(--text); width:100%; }
+  button { font:inherit; font-size:16px; font-weight:600; margin-top:12px; padding:10px 18px;
+           border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
+  button.secondary { background:#4b5563; }
+  button.link { background:none; color:var(--muted); font-weight:400; font-size:13px;
+                text-decoration:underline; padding:0; margin:0; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .result { border-radius:12px; padding:18px; margin-bottom:16px; font-size:28px; font-weight:800;
+            text-align:center; }
+  .result small { display:block; font-size:14px; font-weight:500; margin-top:6px; }
+  .ok { background:var(--okbg); color:var(--ok); border:2px solid var(--ok); }
+  .fail { background:var(--failbg); color:var(--fail); border:2px solid var(--fail); }
+  .loading { background:#e5e7eb; color:var(--muted); font-size:16px; font-weight:500; }
+  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:15px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
+  .empty { color:var(--muted); margin-top:12px; }
+  .foot { display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>강의실 예약</h1>
+  <p class="sub">운영 시간 9시~21시 · 1회 최대 3시간 · 1인 하루 2건</p>
+
+  <div class="result loading" id="result">불러오는 중… (처음엔 10초쯤 걸릴 수 있어요)</div>
+
+  <section class="card">
+    <h2>예약하기</h2>
+    <form id="bookForm">
+      <div class="grid">
+        <label>강의실<select name="room" class="room"></select></label>
+        <label>요일<input name="day" list="days" required></label>
+        <label>시작(시)<input name="start" inputmode="decimal" required></label>
+        <label>끝(시)<input name="end" inputmode="decimal" required></label>
+        <label>이름<input name="name" required></label>
+      </div>
+      <button type="submit" disabled>예약</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>취소하기</h2>
+    <form id="cancelForm">
+      <div class="grid">
+        <label>강의실<select name="room" class="room"></select></label>
+        <label>요일<input name="day" list="days" required></label>
+        <label>시작(시)<input name="start" inputmode="decimal" required></label>
+        <label>이름<input name="name" required></label>
+      </div>
+      <button type="submit" class="secondary" disabled>취소</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>시간표 보기</h2>
+    <div class="grid">
+      <label>강의실<select id="viewRoom" class="room"></select></label>
+      <label>요일<select id="viewDay"></select></label>
+    </div>
+    <h2 style="margin-top:16px" id="viewTitle"></h2>
+    <div id="schedule"></div>
+  </section>
+
+  <div class="foot">
+    <span>예약 규칙은 solution.py가 판단합니다</span>
+    <button class="link" id="resetBtn" type="button">모든 예약 초기화</button>
+  </div>
+
+  <datalist id="days"></datalist>
+</main>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+const ROOMS = ["A101", "A102", "B201"];
+const DAYS = ["월", "화", "수", "목", "금"];
+const LOG_KEY = "roomBookingLog";
+
+// 화면 입력값을 숫자로 바꿔 넘길 뿐, 맞는지 틀린지는 solution.py가 정한다
+const GLUE = `
+from solution import RoomBooking
+
+def to_number(text):
+    text = (text or "").strip()
+    for cast in (int, float):
+        try:
+            return cast(text)
+        except ValueError:
+            pass
+    return text
+
+rb = RoomBooking()
+
+def do_book(room, day, start, end, name):
+    return rb.book(room, day.strip(), to_number(start), to_number(end), name.strip())
+
+def do_cancel(room, day, start, name):
+    return rb.cancel(room, day.strip(), to_number(start), name.strip())
+
+def do_schedule(room, day):
+    return [list(b) for b in rb.get_schedule(room, day)]
+`;
+
+let py, api;
+const $ = (s) => document.querySelector(s);
+
+for (const sel of document.querySelectorAll("select.room"))
+  sel.innerHTML = ROOMS.map((r) => `<option>${r}</option>`).join("");
+$("#viewDay").innerHTML = DAYS.map((d) => `<option>${d}</option>`).join("");
+$("#days").innerHTML = DAYS.map((d) => `<option value="${d}">`).join("");
+
+function readLog() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch { return []; }
+}
+function writeLog(log) {
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch {}
+}
+
+function showResult(ok, msg) {
+  const el = $("#result");
+  el.className = "result " + (ok ? "ok" : "fail");
+  el.innerHTML = (ok ? "성공" : "실패") + "<small></small>";
+  el.querySelector("small").textContent = msg;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function renderSchedule() {
+  const room = $("#viewRoom").value, day = $("#viewDay").value;
+  $("#viewTitle").textContent = `${room} · ${day}요일`;
+  if (!api) return;
+  const proxy = api.do_schedule(room, day);
+  const rows = proxy.toJs();
+  proxy.destroy();
+  $("#schedule").innerHTML = rows.length
+    ? "<table><tr><th>시간</th><th>예약자</th></tr>" +
+      rows.map(([s, e, n]) => `<tr><td>${esc(s)}~${esc(e)}시</td><td>${esc(n)}</td></tr>`).join("") +
+      "</table>"
+    : '<p class="empty">예약이 없습니다.</p>';
+}
+
+function showSchedule(room, day) {
+  if (ROOMS.includes(room)) $("#viewRoom").value = room;
+  if (DAYS.includes(day.trim())) $("#viewDay").value = day.trim();
+  renderSchedule();
+}
+
+$("#bookForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const f = Object.fromEntries(new FormData(ev.target));
+  const ok = api.do_book(f.room, f.day, f.start, f.end, f.name);
+  if (ok) writeLog([...readLog(), ["book", f.room, f.day, f.start, f.end, f.name]]);
+  const msg = `${f.name} · ${f.room} · ${f.day} · ${f.start}~${f.end}시 예약`;
+  showResult(ok, msg + (ok ? " 완료" : "이 거절되었습니다"));
+  showSchedule(f.room, f.day);
+});
+
+$("#cancelForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const f = Object.fromEntries(new FormData(ev.target));
+  const ok = api.do_cancel(f.room, f.day, f.start, f.name);
+  if (ok) writeLog([...readLog(), ["cancel", f.room, f.day, f.start, f.name]]);
+  const msg = `${f.name} · ${f.room} · ${f.day} · ${f.start}시 예약 취소`;
+  showResult(ok, msg + (ok ? " 완료" : "가 거절되었습니다"));
+  showSchedule(f.room, f.day);
+});
+
+$("#viewRoom").addEventListener("change", renderSchedule);
+$("#viewDay").addEventListener("change", renderSchedule);
+
+$("#resetBtn").addEventListener("click", () => {
+  if (!confirm("모든 예약을 지우고 처음 상태로 돌아갈까요?")) return;
+  writeLog([]);
+  py.runPython("rb = RoomBooking()");
+  $("#result").className = "result loading";
+  $("#result").textContent = "초기화했습니다. 예약이 없는 처음 상태입니다.";
+  renderSchedule();
+});
+
+async function start() {
+  try {
+    py = await loadPyodide();
+    const res = await fetch("solution.py?v=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("solution.py를 찾지 못했습니다 (" + res.status + ")");
+    py.FS.writeFile("solution.py", await res.text());
+    py.runPython(GLUE);
+    api = { do_book: py.globals.get("do_book"), do_cancel: py.globals.get("do_cancel"),
+            do_schedule: py.globals.get("do_schedule") };
+    // 새로고침해도 예약이 남도록, 저장해 둔 기록을 solution.py에 다시 실행한다
+    for (const [op, ...args] of readLog()) (op === "book" ? api.do_book : api.do_cancel)(...args);
+    document.querySelectorAll("button[type=submit]").forEach((b) => (b.disabled = false));
+    $("#result").textContent = "준비 완료! 예약을 시작하세요.";
+    renderSchedule();
+  } catch (e) {
+    $("#result").className = "result fail";
+    $("#result").innerHTML = "불러오기 실패<small></small>";
+    $("#result").querySelector("small").textContent = String(e);
+  }
+}
+renderSchedule();
+start();
+</script>
+</body>
+</html>
