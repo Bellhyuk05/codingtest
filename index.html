@@ -4,81 +4,190 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>강의실 예약</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-  :root { --bg:#f5f6f8; --card:#fff; --text:#1d2129; --muted:#6b7280; --line:#e3e6ea;
-          --accent:#2f6fed; --ok:#15803d; --okbg:#dcfce7; --fail:#b91c1c; --failbg:#fee2e2; }
+  :root {
+    --bg:#f2f4f8; --card:#ffffff; --text:#191f28; --muted:#6b7684; --line:#e5e8eb; --field:#f7f8fa;
+    --brand:#5b5bf6; --brand2:#8b5cf6; --brand-soft:#eef0ff;
+    --ok:#0f9d58; --okbg:#e7f8ef; --fail:#e5383b; --failbg:#ffeceb;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.06);
+    --r1:#5b5bf6; --r2:#14b8a6; --r3:#f59e0b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0f1117; --card:#181b24; --text:#eef0f4; --muted:#9aa3b2; --line:#2a2f3b; --field:#20242f;
+      --brand-soft:#262a4a; --okbg:#10291d; --failbg:#331517;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text);
-         font-family:system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif; }
-  main { max-width:720px; margin:0 auto; padding:24px 16px 48px; }
-  h1 { font-size:24px; margin:0 0 4px; }
-  .sub { color:var(--muted); margin:0 0 20px; font-size:14px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
-          padding:18px; margin-bottom:16px; }
-  h2 { font-size:17px; margin:0 0 12px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; }
-  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:4px; }
-  input, select { font:inherit; font-size:16px; padding:9px 10px; border:1px solid var(--line);
-                  border-radius:8px; background:#fff; color:var(--text); width:100%; }
-  button { font:inherit; font-size:16px; font-weight:600; margin-top:12px; padding:10px 18px;
-           border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; }
-  button.secondary { background:#4b5563; }
-  button.link { background:none; color:var(--muted); font-weight:400; font-size:13px;
-                text-decoration:underline; padding:0; margin:0; }
-  button:disabled { opacity:.5; cursor:wait; }
-  .result { border-radius:12px; padding:18px; margin-bottom:16px; font-size:28px; font-weight:800;
-            text-align:center; }
-  .result small { display:block; font-size:14px; font-weight:500; margin-top:6px; }
-  .ok { background:var(--okbg); color:var(--ok); border:2px solid var(--ok); }
-  .fail { background:var(--failbg); color:var(--fail); border:2px solid var(--fail); }
-  .loading { background:#e5e7eb; color:var(--muted); font-size:16px; font-weight:500; }
-  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:15px; }
-  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
-  .empty { color:var(--muted); margin-top:12px; }
-  .foot { display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:13px; }
+         font-family:Pretendard,system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+         -webkit-font-smoothing:antialiased; }
+
+  .hero { background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%); color:#fff;
+          padding:36px 16px 84px; }
+  .hero-in { max-width:760px; margin:0 auto; }
+  .badge { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.18);
+           padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600; }
+  .hero h1 { font-size:30px; font-weight:800; letter-spacing:-.5px; margin:14px 0 8px; }
+  .hero p { margin:0; opacity:.9; font-size:15px; }
+  .rules { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .rules span { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25);
+                padding:6px 12px; border-radius:10px; font-size:13px; }
+
+  main { max-width:760px; margin:-56px auto 0; padding:0 16px 48px; position:relative; }
+
+  .result { border-radius:18px; padding:20px; margin-bottom:16px; display:flex; align-items:center; gap:16px;
+            background:var(--card); box-shadow:var(--shadow); border:2px solid transparent; }
+  .result .icon { flex:none; width:52px; height:52px; border-radius:50%; display:grid; place-items:center;
+                  font-size:26px; font-weight:800; color:#fff; background:var(--muted); }
+  .result .big { font-size:26px; font-weight:800; letter-spacing:-.3px; }
+  .result small { display:block; font-size:14px; color:var(--muted); margin-top:2px; }
+  .result.ok { background:var(--okbg); border-color:var(--ok); }
+  .result.ok .icon { background:var(--ok); }
+  .result.ok .big { color:var(--ok); }
+  .result.fail { background:var(--failbg); border-color:var(--fail); animation:shake .35s; }
+  .result.fail .icon { background:var(--fail); }
+  .result.fail .big { color:var(--fail); }
+  .result.loading .big, .result.info .big { font-size:17px; font-weight:700; }
+  .result.loading .icon { background:var(--brand); animation:pulse 1.2s infinite; }
+  .result.info .icon { background:var(--brand); font-size:22px; }
+  @keyframes shake { 25%{transform:translateX(-6px)} 50%{transform:translateX(6px)} 75%{transform:translateX(-3px)} }
+  @keyframes pulse { 50%{opacity:.45} }
+
+  .tabs { display:flex; gap:6px; background:var(--card); padding:6px; border-radius:16px;
+          box-shadow:var(--shadow); margin-bottom:16px; }
+  .tabs button { flex:1; margin:0; padding:12px 8px; border-radius:12px; background:transparent;
+                 color:var(--muted); font-weight:700; }
+  .tabs button.on { background:var(--brand-soft); color:var(--brand); }
+
+  .card { background:var(--card); border-radius:20px; padding:22px; margin-bottom:16px; box-shadow:var(--shadow); }
+  .card h2 { font-size:19px; font-weight:800; margin:0 0 4px; letter-spacing:-.3px; }
+  .card .desc { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  .panel[hidden] { display:none; }
+
+  .field { margin-bottom:16px; }
+  .field > .lab { display:block; font-size:13px; font-weight:700; color:var(--muted); margin-bottom:8px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  input { font:inherit; font-size:16px; padding:13px 14px; border:1.5px solid transparent; border-radius:12px;
+          background:var(--field); color:var(--text); width:100%; outline:none; transition:border-color .15s, background .15s; }
+  input:focus { border-color:var(--brand); background:var(--card); }
+  input::placeholder { color:var(--muted); opacity:.7; }
+
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { font:inherit; font-size:15px; font-weight:600; padding:10px 16px; border-radius:12px; cursor:pointer;
+          border:1.5px solid var(--line); background:var(--card); color:var(--text); margin:0; transition:all .15s; }
+  .chip:hover { border-color:var(--brand); }
+  .chip.on { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .chips.small .chip { padding:7px 12px; font-size:14px; }
+  .day-wrap { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .day-wrap input { width:84px; text-align:center; }
+
+  button { font:inherit; font-size:16px; font-weight:700; border:0; cursor:pointer; color:#fff; }
+  .submit { width:100%; margin-top:6px; padding:15px; border-radius:14px;
+            background:linear-gradient(135deg,var(--brand),var(--brand2)); box-shadow:0 6px 16px rgba(91,91,246,.3);
+            transition:transform .1s, opacity .15s; }
+  .submit:active { transform:scale(.98); }
+  .submit.danger { background:var(--fail); box-shadow:0 6px 16px rgba(229,56,59,.25); }
+  .submit:disabled { opacity:.45; cursor:wait; box-shadow:none; }
+
+  .timeline { position:relative; margin:18px 0 6px; }
+  .track { position:relative; height:56px; background:var(--field); border-radius:12px; overflow:hidden;
+           background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(100%/12 - 1px),var(--line) calc(100%/12 - 1px),var(--line) calc(100%/12)); }
+  .block { position:absolute; top:6px; bottom:6px; border-radius:9px; color:#fff; padding:4px 8px; overflow:hidden;
+           font-size:12px; font-weight:700; line-height:1.3; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,.12); }
+  .block span { display:block; font-weight:500; opacity:.9; }
+  .hours { position:relative; height:18px; margin-top:6px; font-size:11px; color:var(--muted); }
+  .hours span { position:absolute; transform:translateX(-50%); white-space:nowrap; }
+  .hours span:first-child { transform:none; }
+  .hours span:last-child { transform:translateX(-100%); }
+
+  .list { list-style:none; margin:14px 0 0; padding:0; }
+  .list li { display:flex; align-items:center; gap:14px; padding:14px 4px; border-top:1px solid var(--line); }
+  .list li:first-child { border-top:0; }
+  .list .time { font-weight:800; font-size:16px; min-width:86px; }
+  .list .who { display:flex; align-items:center; gap:10px; font-weight:600; }
+  .avatar { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; color:#fff; font-size:13px; font-weight:800; }
+  .empty { text-align:center; color:var(--muted); padding:24px 0 8px; }
+  .empty b { display:block; font-size:28px; margin-bottom:6px; }
+
+  .foot { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+          color:var(--muted); font-size:13px; padding:4px 4px 0; }
+  .link { background:none; color:var(--muted); font-weight:500; font-size:13px; text-decoration:underline; padding:0; }
+
+  @media (max-width:480px) {
+    .hero h1 { font-size:25px; }
+    .card { padding:18px; }
+    .result .big { font-size:22px; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>강의실 예약</h1>
-  <p class="sub">운영 시간 9시~21시 · 1회 최대 3시간 · 1인 하루 2건</p>
-
-  <div class="result loading" id="result">불러오는 중… (처음엔 10초쯤 걸릴 수 있어요)</div>
-
-  <section class="card">
-    <h2>예약하기</h2>
-    <form id="bookForm">
-      <div class="grid">
-        <label>강의실<select name="room" class="room"></select></label>
-        <label>요일<input name="day" list="days" required></label>
-        <label>시작(시)<input name="start" inputmode="decimal" required></label>
-        <label>끝(시)<input name="end" inputmode="decimal" required></label>
-        <label>이름<input name="name" required></label>
-      </div>
-      <button type="submit" disabled>예약</button>
-    </form>
-  </section>
-
-  <section class="card">
-    <h2>취소하기</h2>
-    <form id="cancelForm">
-      <div class="grid">
-        <label>강의실<select name="room" class="room"></select></label>
-        <label>요일<input name="day" list="days" required></label>
-        <label>시작(시)<input name="start" inputmode="decimal" required></label>
-        <label>이름<input name="name" required></label>
-      </div>
-      <button type="submit" class="secondary" disabled>취소</button>
-    </form>
-  </section>
-
-  <section class="card">
-    <h2>시간표 보기</h2>
-    <div class="grid">
-      <label>강의실<select id="viewRoom" class="room"></select></label>
-      <label>요일<select id="viewDay"></select></label>
+<header class="hero">
+  <div class="hero-in">
+    <span class="badge">🏫 캠퍼스 강의실</span>
+    <h1>강의실 예약</h1>
+    <p>원하는 강의실과 시간을 골라 바로 예약하세요.</p>
+    <div class="rules">
+      <span>🕘 9시 ~ 21시</span><span>⏱ 1회 최대 3시간</span><span>👤 1인 하루 2건</span>
     </div>
-    <h2 style="margin-top:16px" id="viewTitle"></h2>
+  </div>
+</header>
+
+<main>
+  <div class="result loading" id="result">
+    <div class="icon">…</div>
+    <div><div class="big">불러오는 중…</div><small>처음엔 10초쯤 걸릴 수 있어요</small></div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button type="button" data-tab="book" class="on">📅 예약</button>
+    <button type="button" data-tab="cancel">↩️ 취소</button>
+    <button type="button" data-tab="view">🗓 시간표</button>
+  </nav>
+
+  <section class="card panel" data-panel="book">
+    <h2>예약하기</h2>
+    <p class="desc">강의실 · 요일 · 시간 · 이름을 입력하세요.</p>
+    <form id="bookForm">
+      <div class="field"><span class="lab">강의실</span><div class="chips room-chips" data-for="room"></div>
+        <input type="hidden" name="room"></div>
+      <div class="field"><span class="lab">요일</span>
+        <div class="day-wrap"><div class="chips day-chips" data-for="day"></div>
+          <input name="day" placeholder="직접" required aria-label="요일 직접 입력"></div></div>
+      <div class="field row">
+        <label><span class="lab">시작 (시)</span><input name="start" inputmode="decimal" placeholder="예: 10" required></label>
+        <label><span class="lab">끝 (시)</span><input name="end" inputmode="decimal" placeholder="예: 12" required></label>
+      </div>
+      <div class="field"><label><span class="lab">이름</span><input name="name" placeholder="예약자 이름" required></label></div>
+      <button type="submit" class="submit" disabled>예약하기</button>
+    </form>
+  </section>
+
+  <section class="card panel" data-panel="cancel" hidden>
+    <h2>취소하기</h2>
+    <p class="desc">본인 이름으로 한 예약만 취소할 수 있어요.</p>
+    <form id="cancelForm">
+      <div class="field"><span class="lab">강의실</span><div class="chips room-chips" data-for="room"></div>
+        <input type="hidden" name="room"></div>
+      <div class="field"><span class="lab">요일</span>
+        <div class="day-wrap"><div class="chips day-chips" data-for="day"></div>
+          <input name="day" placeholder="직접" required aria-label="요일 직접 입력"></div></div>
+      <div class="field row">
+        <label><span class="lab">시작 (시)</span><input name="start" inputmode="decimal" placeholder="예: 10" required></label>
+        <label><span class="lab">이름</span><input name="name" placeholder="예약자 이름" required></label>
+      </div>
+      <button type="submit" class="submit danger" disabled>예약 취소</button>
+    </form>
+  </section>
+
+  <section class="card panel" data-panel="view" hidden>
+    <h2 id="viewTitle">시간표</h2>
+    <p class="desc">시작 시각이 빠른 순서로 보여드려요.</p>
+    <div class="field"><div class="chips small" id="viewRoomChips"></div></div>
+    <div class="field"><div class="chips small" id="viewDayChips"></div></div>
+    <div class="timeline"><div class="track" id="track"></div><div class="hours" id="hours"></div></div>
     <div id="schedule"></div>
   </section>
 
@@ -86,14 +195,13 @@
     <span>예약 규칙은 solution.py가 판단합니다</span>
     <button class="link" id="resetBtn" type="button">모든 예약 초기화</button>
   </div>
-
-  <datalist id="days"></datalist>
 </main>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script>
 const ROOMS = ["A101", "A102", "B201"];
 const DAYS = ["월", "화", "수", "목", "금"];
+const ROOM_COLOR = { A101: "var(--r1)", A102: "var(--r2)", B201: "var(--r3)" };
 const LOG_KEY = "roomBookingLog";
 
 // 화면 입력값을 숫자로 바꿔 넘길 뿐, 맞는지 틀린지는 solution.py가 정한다
@@ -123,11 +231,44 @@ def do_schedule(room, day):
 
 let py, api;
 const $ = (s) => document.querySelector(s);
+const view = { room: ROOMS[0], day: DAYS[0] };
 
-for (const sel of document.querySelectorAll("select.room"))
-  sel.innerHTML = ROOMS.map((r) => `<option>${r}</option>`).join("");
-$("#viewDay").innerHTML = DAYS.map((d) => `<option>${d}</option>`).join("");
-$("#days").innerHTML = DAYS.map((d) => `<option value="${d}">`).join("");
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// 탭
+function showTab(name) {
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  document.querySelectorAll(".panel").forEach((p) => (p.hidden = p.dataset.panel !== name));
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+// 칩: 누르면 옆의 입력칸 값을 채운다
+function makeChips(box, values, onPick) {
+  box.innerHTML = values.map((v) => `<button type="button" class="chip" data-v="${v}">${v}</button>`).join("");
+  box.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (chip) onPick(chip.dataset.v);
+  });
+}
+function markChips(box, value) {
+  box.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.dataset.v === value));
+}
+
+for (const form of [$("#bookForm"), $("#cancelForm")]) {
+  const roomBox = form.querySelector(".room-chips"), dayBox = form.querySelector(".day-chips");
+  const roomIn = form.elements.room, dayIn = form.elements.day;
+  makeChips(roomBox, ROOMS, (v) => { roomIn.value = v; markChips(roomBox, v); });
+  makeChips(dayBox, DAYS, (v) => { dayIn.value = v; markChips(dayBox, v); });
+  dayIn.addEventListener("input", () => markChips(dayBox, dayIn.value.trim()));
+  roomIn.value = ROOMS[0]; markChips(roomBox, ROOMS[0]);
+  form.syncChips = () => { markChips(roomBox, roomIn.value); markChips(dayBox, dayIn.value.trim()); };
+}
+
+makeChips($("#viewRoomChips"), ROOMS, (v) => { view.room = v; renderSchedule(); });
+makeChips($("#viewDayChips"), DAYS.map((d) => d + "요일"), (v) => { view.day = v[0]; renderSchedule(); });
+$("#hours").innerHTML = [9, 12, 15, 18, 21].map((h) => `<span style="left:${(h - 9) / 12 * 100}%">${h}시</span>`).join("");
 
 function readLog() {
   try { return JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch { return []; }
@@ -136,35 +277,40 @@ function writeLog(log) {
   try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch {}
 }
 
-function showResult(ok, msg) {
+function showResult(state, title, msg) {
   const el = $("#result");
-  el.className = "result " + (ok ? "ok" : "fail");
-  el.innerHTML = (ok ? "성공" : "실패") + "<small></small>";
+  el.className = "result";
+  void el.offsetWidth; // 연속 실패에도 흔들림 애니메이션이 다시 나오게
+  el.className = "result " + state;
+  const icon = { ok: "✓", fail: "✕", info: "👋" }[state] || "…";
+  el.innerHTML = `<div class="icon">${icon}</div><div><div class="big"></div><small></small></div>`;
+  el.querySelector(".big").textContent = title;
   el.querySelector("small").textContent = msg;
-  el.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function renderSchedule() {
-  const room = $("#viewRoom").value, day = $("#viewDay").value;
-  $("#viewTitle").textContent = `${room} · ${day}요일`;
+  markChips($("#viewRoomChips"), view.room);
+  markChips($("#viewDayChips"), view.day + "요일");
+  $("#viewTitle").textContent = `${view.room} · ${view.day}요일 시간표`;
   if (!api) return;
-  const proxy = api.do_schedule(room, day);
+  const proxy = api.do_schedule(view.room, view.day);
   const rows = proxy.toJs();
   proxy.destroy();
+  const color = ROOM_COLOR[view.room];
+  $("#track").innerHTML = rows.map(([s, e, n]) =>
+    `<div class="block" style="left:calc(${(s - 9) / 12 * 100}% + 2px);width:calc(${(e - s) / 12 * 100}% - 4px);background:${color}">${esc(n)}<span>${s}~${e}시</span></div>`
+  ).join("");
   $("#schedule").innerHTML = rows.length
-    ? "<table><tr><th>시간</th><th>예약자</th></tr>" +
-      rows.map(([s, e, n]) => `<tr><td>${esc(s)}~${esc(e)}시</td><td>${esc(n)}</td></tr>`).join("") +
-      "</table>"
-    : '<p class="empty">예약이 없습니다.</p>';
+    ? '<ul class="list">' + rows.map(([s, e, n]) =>
+        `<li><span class="time">${esc(s)}~${esc(e)}시</span><span class="who"><span class="avatar" style="background:${color}">${esc(String(n).slice(0, 1))}</span>${esc(n)}</span></li>`
+      ).join("") + "</ul>"
+    : '<div class="empty"><b>🌿</b>예약이 없습니다.</div>';
 }
 
 function showSchedule(room, day) {
-  if (ROOMS.includes(room)) $("#viewRoom").value = room;
-  if (DAYS.includes(day.trim())) $("#viewDay").value = day.trim();
+  if (ROOMS.includes(room)) view.room = room;
+  if (DAYS.includes(day.trim())) view.day = day.trim();
   renderSchedule();
 }
 
@@ -174,7 +320,7 @@ $("#bookForm").addEventListener("submit", (ev) => {
   const ok = api.do_book(f.room, f.day, f.start, f.end, f.name);
   if (ok) writeLog([...readLog(), ["book", f.room, f.day, f.start, f.end, f.name]]);
   const msg = `${f.name} · ${f.room} · ${f.day} · ${f.start}~${f.end}시 예약`;
-  showResult(ok, msg + (ok ? " 완료" : "이 거절되었습니다"));
+  showResult(ok ? "ok" : "fail", ok ? "성공" : "실패", msg + (ok ? " 완료" : "이 거절되었습니다"));
   showSchedule(f.room, f.day);
 });
 
@@ -184,19 +330,15 @@ $("#cancelForm").addEventListener("submit", (ev) => {
   const ok = api.do_cancel(f.room, f.day, f.start, f.name);
   if (ok) writeLog([...readLog(), ["cancel", f.room, f.day, f.start, f.name]]);
   const msg = `${f.name} · ${f.room} · ${f.day} · ${f.start}시 예약 취소`;
-  showResult(ok, msg + (ok ? " 완료" : "가 거절되었습니다"));
+  showResult(ok ? "ok" : "fail", ok ? "성공" : "실패", msg + (ok ? " 완료" : "가 거절되었습니다"));
   showSchedule(f.room, f.day);
 });
-
-$("#viewRoom").addEventListener("change", renderSchedule);
-$("#viewDay").addEventListener("change", renderSchedule);
 
 $("#resetBtn").addEventListener("click", () => {
   if (!confirm("모든 예약을 지우고 처음 상태로 돌아갈까요?")) return;
   writeLog([]);
   py.runPython("rb = RoomBooking()");
-  $("#result").className = "result loading";
-  $("#result").textContent = "초기화했습니다. 예약이 없는 처음 상태입니다.";
+  showResult("info", "초기화했습니다", "예약이 없는 처음 상태입니다.");
   renderSchedule();
 });
 
@@ -212,12 +354,10 @@ async function start() {
     // 새로고침해도 예약이 남도록, 저장해 둔 기록을 solution.py에 다시 실행한다
     for (const [op, ...args] of readLog()) (op === "book" ? api.do_book : api.do_cancel)(...args);
     document.querySelectorAll("button[type=submit]").forEach((b) => (b.disabled = false));
-    $("#result").textContent = "준비 완료! 예약을 시작하세요.";
+    showResult("info", "준비 완료!", "예약을 시작하세요.");
     renderSchedule();
   } catch (e) {
-    $("#result").className = "result fail";
-    $("#result").innerHTML = "불러오기 실패<small></small>";
-    $("#result").querySelector("small").textContent = String(e);
+    showResult("fail", "불러오기 실패", String(e));
   }
 }
 renderSchedule();
