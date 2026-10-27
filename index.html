@@ -106,7 +106,7 @@
   .list { list-style:none; margin:14px 0 0; padding:0; }
   .list li { display:flex; align-items:center; gap:14px; padding:14px 4px; border-top:1px solid var(--line); }
   .list li:first-child { border-top:0; }
-  .list .time { font-weight:800; font-size:16px; min-width:86px; }
+  .list .time { font-weight:800; font-size:16px; min-width:124px; font-variant-numeric:tabular-nums; }
   .list .who { display:flex; align-items:center; gap:10px; font-weight:600; }
   .avatar { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; color:#fff; font-size:13px; font-weight:800; }
   .empty { text-align:center; color:var(--muted); padding:24px 0 8px; }
@@ -130,7 +130,7 @@
     <h1>강의실 예약</h1>
     <p>원하는 강의실과 시간을 골라 바로 예약하세요.</p>
     <div class="rules">
-      <span>🕘 9시 ~ 21시</span><span>⏱ 1회 최대 3시간</span><span>👤 1인 하루 2건</span>
+      <span>🕘 09:00 ~ 21:00</span><span>⏱ 1회 최대 3시간</span><span>👤 1인 하루 2건</span>
     </div>
   </div>
 </header>
@@ -157,8 +157,8 @@
         <div class="day-wrap"><div class="chips day-chips" data-for="day"></div>
           <input name="day" placeholder="직접" required aria-label="요일 직접 입력"></div></div>
       <div class="field row">
-        <label><span class="lab">시작 (시)</span><input name="start" inputmode="decimal" placeholder="예: 10" required></label>
-        <label><span class="lab">끝 (시)</span><input name="end" inputmode="decimal" placeholder="예: 12" required></label>
+        <label><span class="lab">시작 시각 (24시간)</span><input name="start" inputmode="decimal" placeholder="예: 14 → 14:00" required></label>
+        <label><span class="lab">끝 시각 (24시간)</span><input name="end" inputmode="decimal" placeholder="예: 16 → 16:00" required></label>
       </div>
       <div class="field"><label><span class="lab">이름</span><input name="name" placeholder="예약자 이름" required></label></div>
       <button type="submit" class="submit" disabled>예약하기</button>
@@ -175,7 +175,7 @@
         <div class="day-wrap"><div class="chips day-chips" data-for="day"></div>
           <input name="day" placeholder="직접" required aria-label="요일 직접 입력"></div></div>
       <div class="field row">
-        <label><span class="lab">시작 (시)</span><input name="start" inputmode="decimal" placeholder="예: 10" required></label>
+        <label><span class="lab">시작 시각 (24시간)</span><input name="start" inputmode="decimal" placeholder="예: 14 → 14:00" required></label>
         <label><span class="lab">이름</span><input name="name" placeholder="예약자 이름" required></label>
       </div>
       <button type="submit" class="submit danger" disabled>예약 취소</button>
@@ -233,6 +233,12 @@ let py, api;
 const $ = (s) => document.querySelector(s);
 const view = { room: ROOMS[0], day: DAYS[0] };
 
+// 24시간제 표시: 14 → "14:00", 9 → "09:00" (정수가 아니면 입력한 그대로)
+function hhmm(h) {
+  const t = String(h).trim();
+  return /^\d{1,2}$/.test(t) ? t.padStart(2, "0") + ":00" : t + "시";
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -268,7 +274,7 @@ for (const form of [$("#bookForm"), $("#cancelForm")]) {
 
 makeChips($("#viewRoomChips"), ROOMS, (v) => { view.room = v; renderSchedule(); });
 makeChips($("#viewDayChips"), DAYS.map((d) => d + "요일"), (v) => { view.day = v[0]; renderSchedule(); });
-$("#hours").innerHTML = [9, 12, 15, 18, 21].map((h) => `<span style="left:${(h - 9) / 12 * 100}%">${h}시</span>`).join("");
+$("#hours").innerHTML = [9, 12, 15, 18, 21].map((h) => `<span style="left:${(h - 9) / 12 * 100}%">${hhmm(h)}</span>`).join("");
 
 function readLog() {
   try { return JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch { return []; }
@@ -299,11 +305,11 @@ function renderSchedule() {
   proxy.destroy();
   const color = ROOM_COLOR[view.room];
   $("#track").innerHTML = rows.map(([s, e, n]) =>
-    `<div class="block" style="left:calc(${(s - 9) / 12 * 100}% + 2px);width:calc(${(e - s) / 12 * 100}% - 4px);background:${color}">${esc(n)}<span>${s}~${e}시</span></div>`
+    `<div class="block" style="left:calc(${(s - 9) / 12 * 100}% + 2px);width:calc(${(e - s) / 12 * 100}% - 4px);background:${color}">${esc(n)}<span>${hhmm(s)}~${hhmm(e)}</span></div>`
   ).join("");
   $("#schedule").innerHTML = rows.length
     ? '<ul class="list">' + rows.map(([s, e, n]) =>
-        `<li><span class="time">${esc(s)}~${esc(e)}시</span><span class="who"><span class="avatar" style="background:${color}">${esc(String(n).slice(0, 1))}</span>${esc(n)}</span></li>`
+        `<li><span class="time">${hhmm(s)} ~ ${hhmm(e)}</span><span class="who"><span class="avatar" style="background:${color}">${esc(String(n).slice(0, 1))}</span>${esc(n)}</span></li>`
       ).join("") + "</ul>"
     : '<div class="empty"><b>🌿</b>예약이 없습니다.</div>';
 }
@@ -319,7 +325,7 @@ $("#bookForm").addEventListener("submit", (ev) => {
   const f = Object.fromEntries(new FormData(ev.target));
   const ok = api.do_book(f.room, f.day, f.start, f.end, f.name);
   if (ok) writeLog([...readLog(), ["book", f.room, f.day, f.start, f.end, f.name]]);
-  const msg = `${f.name} · ${f.room} · ${f.day} · ${f.start}~${f.end}시 예약`;
+  const msg = `${f.name} · ${f.room} · ${f.day} · ${hhmm(f.start)}~${hhmm(f.end)} 예약`;
   showResult(ok ? "ok" : "fail", ok ? "성공" : "실패", msg + (ok ? " 완료" : "이 거절되었습니다"));
   showSchedule(f.room, f.day);
 });
@@ -329,7 +335,7 @@ $("#cancelForm").addEventListener("submit", (ev) => {
   const f = Object.fromEntries(new FormData(ev.target));
   const ok = api.do_cancel(f.room, f.day, f.start, f.name);
   if (ok) writeLog([...readLog(), ["cancel", f.room, f.day, f.start, f.name]]);
-  const msg = `${f.name} · ${f.room} · ${f.day} · ${f.start}시 예약 취소`;
+  const msg = `${f.name} · ${f.room} · ${f.day} · ${hhmm(f.start)} 예약 취소`;
   showResult(ok ? "ok" : "fail", ok ? "성공" : "실패", msg + (ok ? " 완료" : "가 거절되었습니다"));
   showSchedule(f.room, f.day);
 });
